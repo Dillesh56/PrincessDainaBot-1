@@ -197,14 +197,39 @@ def owner_id() -> Optional[int]:
 
 async def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     oid = owner_id()
-    if oid and update.effective_user and update.effective_user.id == oid:
-        return True
+    chat = update.effective_chat
+    user = update.effective_user
+    msg = update.effective_message
 
-    if not update.effective_chat or update.effective_chat.type not in ("group", "supergroup"):
+    # Must be in group/supergroup
+    if not chat or chat.type not in ("group", "supergroup"):
         return False
 
-    member = await context.bot.get_chat_member(update.effective_chat.id, update.effective_user.id)
-    return member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER)
+    # OWNER bypass (when user is visible)
+    if oid and user and user.id == oid:
+        return True
+
+    # Normal admin check (user is visible)
+    if user:
+        member = await context.bot.get_chat_member(chat.id, user.id)
+        return member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR)
+
+    # If command was sent as a chat (anonymous admin OR send-as channel)
+    if msg and msg.sender_chat:
+        # Case 1: anonymous admin (sender_chat is the same group)
+        if msg.sender_chat.id == chat.id:
+            return True
+
+        # Case 2: sent as a linked channel (or another chat identity)
+        # Check if that sender_chat is an admin in this group
+        try:
+            member = await context.bot.get_chat_member(chat.id, msg.sender_chat.id)
+            return member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR)
+        except Exception:
+            return False
+
+    return False
+
 
 
 async def require_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
@@ -882,6 +907,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
