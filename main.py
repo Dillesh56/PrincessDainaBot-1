@@ -822,6 +822,7 @@ def main():
     app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(CommandHandler("about", about_cmd))
     app.add_handler(CommandHandler("privacy", privacy_cmd))
+    app.add_handler(CommandHandler("ping", ping_cmd))
 
     # Moderation
     app.add_handler(CommandHandler("ban", ban_cmd))
@@ -867,4 +868,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
