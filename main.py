@@ -305,6 +305,10 @@ async def privacy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def ping_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.effective_message.reply_text("🏓 Pong! Bot is alive ✅")
+
+
 # ---------------------------
 # Moderation commands
 # ---------------------------
@@ -863,3 +867,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
