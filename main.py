@@ -914,6 +914,7 @@ def main():
     app.add_handler(CommandHandler("debug", debug_cmd))
     app.add_handler(CommandHandler("rulesbutton", rulesbutton_cmd))
     app.add_handler(CallbackQueryHandler(rules_callback, pattern=f"^{RULES_CB}$"))
+    
 
 
 
@@ -962,6 +963,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
