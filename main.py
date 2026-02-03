@@ -37,6 +37,10 @@ from telegram.ext import (
     filters,
 )
 
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CallbackQueryHandler
+
+
 # ---------------------------
 # Config
 # ---------------------------
@@ -357,6 +361,38 @@ async def debug_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"chat_id = {chat.id}\n"
         f"user_id = {user.id if user else 'None'}\n"
         f"sender_chat_id = {msg.sender_chat.id if msg and msg.sender_chat else 'None'}"
+    )
+
+
+# ---------------------------
+# Rules button (inline)
+# ---------------------------
+
+RULES_CB = "pd_rules"
+
+async def rulesbutton_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📌 View Rules", callback_data=RULES_CB)]
+    ])
+    await update.effective_message.reply_text(
+        "Tap the button below to view group rules 👇",
+        reply_markup=keyboard
+    )
+
+async def rules_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    chat_id = query.message.chat.id
+    rules = get_setting(chat_id, "rules", None)
+
+    if not rules:
+        await query.message.reply_text("📜 No rules set yet. Admins can set them using /setrules")
+        return
+
+    await query.message.reply_text(
+        f"📜 *Group Rules*\n\n{rules}",
+        parse_mode=ParseMode.MARKDOWN
     )
 
 
@@ -876,6 +912,9 @@ def main():
     app.add_handler(CommandHandler("ping", ping_cmd))
     app.add_handler(CommandHandler("id", id_cmd))
     app.add_handler(CommandHandler("debug", debug_cmd))
+    app.add_handler(CommandHandler("rulesbutton", rulesbutton_cmd))
+app.add_handler(CallbackQueryHandler(rules_callback, pattern=f"^{RULES_CB}$"))
+
 
 
 
@@ -923,6 +962,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
