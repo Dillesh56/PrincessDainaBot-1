@@ -198,37 +198,40 @@ def owner_id() -> Optional[int]:
 async def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     oid = owner_id()
     chat = update.effective_chat
-    user = update.effective_user
     msg = update.effective_message
+    user = update.effective_user
 
-    # Must be in group/supergroup
+    # Must be group/supergroup
     if not chat or chat.type not in ("group", "supergroup"):
         return False
 
-    # OWNER bypass (when user is visible)
+    # ✅ 1) Anonymous admin (or "send as group") — sender_chat is the group itself
+    if msg and msg.sender_chat and msg.sender_chat.id == chat.id:
+        return True
+
+    # ✅ 2) Sent as a linked channel (sender_chat exists)
+    if msg and msg.sender_chat:
+        try:
+            member = await context.bot.get_chat_member(chat.id, msg.sender_chat.id)
+            if member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR):
+                return True
+        except Exception:
+            pass
+
+    # ✅ 3) Owner bypass (only if user exists)
     if oid and user and user.id == oid:
         return True
 
-    # Normal admin check (user is visible)
+    # ✅ 4) Normal admin check
     if user:
-        member = await context.bot.get_chat_member(chat.id, user.id)
-        return member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR)
-
-    # If command was sent as a chat (anonymous admin OR send-as channel)
-    if msg and msg.sender_chat:
-        # Case 1: anonymous admin (sender_chat is the same group)
-        if msg.sender_chat.id == chat.id:
-            return True
-
-        # Case 2: sent as a linked channel (or another chat identity)
-        # Check if that sender_chat is an admin in this group
         try:
-            member = await context.bot.get_chat_member(chat.id, msg.sender_chat.id)
+            member = await context.bot.get_chat_member(chat.id, user.id)
             return member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR)
         except Exception:
             return False
 
     return False
+
 
 
 
@@ -344,6 +347,17 @@ async def id_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.MARKDOWN,
     )
 
+
+async def debug_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_chat
+    user = update.effective_user
+    msg = update.effective_message
+
+    await update.effective_message.reply_text(
+        f"chat_id = {chat.id}\n"
+        f"user_id = {user.id if user else 'None'}\n"
+        f"sender_chat_id = {msg.sender_chat.id if msg and msg.sender_chat else 'None'}"
+    )
 
 
 # ---------------------------
@@ -861,6 +875,8 @@ def main():
     app.add_handler(CommandHandler("privacy", privacy_cmd))
     app.add_handler(CommandHandler("ping", ping_cmd))
     app.add_handler(CommandHandler("id", id_cmd))
+    app.add_handler(CommandHandler("debug", debug_cmd))
+
 
 
     # Moderation
@@ -907,6 +923,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
