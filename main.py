@@ -19,6 +19,10 @@ Optional:
 - OWNER_ID="123456789"   (your Telegram user id; gets bypass permissions)
 """
 
+import httpx
+from urllib.parse import quote_plus
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
 import os
 import re
 import time
@@ -963,6 +967,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
