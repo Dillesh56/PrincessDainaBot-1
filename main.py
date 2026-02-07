@@ -19,27 +19,29 @@ Optional:
 - OWNER_ID="123456789"   (your Telegram user id; gets bypass permissions)
 """
 
-import httpx
-from urllib.parse import quote_plus
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-
 import os
 import re
 import time
 import sqlite3
 from collections import defaultdict, deque
-from typing import Optional, Tuple
+from typing import Optional
 
-from telegram import Update, ChatPermissions
-from telegram.constants import ChatMemberStatus, ParseMode
+import httpx
+from urllib.parse import quote_plus
+
+from telegram import Update, ChatPermissions, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.constants import ParseMode, ChatMemberStatus
 from telegram.ext import (
     Application,
     CommandHandler,
     MessageHandler,
+    CallbackQueryHandler,
     ChatMemberHandler,
     ContextTypes,
     filters,
 )
+
+
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackQueryHandler
@@ -221,7 +223,7 @@ async def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     if msg and msg.sender_chat:
         try:
             member = await context.bot.get_chat_member(chat.id, msg.sender_chat.id)
-            if member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR):
+            if member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER):
                 return True
         except Exception:
             pass
@@ -234,7 +236,7 @@ async def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     if user:
         try:
             member = await context.bot.get_chat_member(chat.id, user.id)
-            return member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR)
+            return member.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER)
         except Exception:
             return False
 
@@ -368,7 +370,7 @@ async def debug_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-    async def movie_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def movie_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         await update.effective_message.reply_text("🎬 Usage: /movie <movie name>\nExample: /movie interstellar")
         return
@@ -436,7 +438,6 @@ async def debug_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
 
     await update.effective_message.reply_text(caption, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
-
 
 
 # ---------------------------
@@ -1040,6 +1041,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
