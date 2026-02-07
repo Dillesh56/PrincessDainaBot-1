@@ -368,6 +368,77 @@ async def debug_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+    async def movie_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.effective_message.reply_text("🎬 Usage: /movie <movie name>\nExample: /movie interstellar")
+        return
+
+    api_key = os.getenv("TMDB_API_KEY", "").strip()
+    if not api_key:
+        await update.effective_message.reply_text("❌ TMDB_API_KEY is missing in Railway Variables.")
+        return
+
+    query = " ".join(context.args).strip()
+    url = f"https://api.themoviedb.org/3/search/movie?api_key={api_key}&query={quote_plus(query)}&include_adult=false&language=en-US&page=1"
+
+    try:
+        async with httpx.AsyncClient(timeout=12) as client:
+            r = await client.get(url)
+            r.raise_for_status()
+            data = r.json()
+    except Exception as e:
+        await update.effective_message.reply_text(f"❌ TMDb error: {e}")
+        return
+
+    results = data.get("results") or []
+    if not results:
+        await update.effective_message.reply_text("😕 No results found. Try a different name.")
+        return
+
+    m = results[0]
+    title = m.get("title") or "Unknown"
+    year = (m.get("release_date") or "")[:4] or "—"
+    rating = m.get("vote_average")
+    rating_txt = f"{rating:.1f}/10" if isinstance(rating, (int, float)) else "—"
+    overview = (m.get("overview") or "No description available.").strip()
+    if len(overview) > 900:
+        overview = overview[:900] + "…"
+
+    movie_id = m.get("id")
+    tmdb_link = f"https://www.themoviedb.org/movie/{movie_id}" if movie_id else "https://www.themoviedb.org/"
+    trailer_search = f"https://www.youtube.com/results?search_query={quote_plus(title + ' trailer')}"
+
+    caption = (
+        f"🎬 *{title}* ({year})\n"
+        f"⭐ Rating: *{rating_txt}*\n\n"
+        f"{overview}\n\n"
+        f"_Data from TMDb_"
+    )
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("TMDb", url=tmdb_link),
+         InlineKeyboardButton("Trailer", url=trailer_search)]
+    ])
+
+    poster_path = m.get("poster_path")
+    if poster_path:
+        poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}"
+        try:
+            await context.bot.send_photo(
+                chat_id=update.effective_chat.id,
+                photo=poster_url,
+                caption=caption,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=keyboard,
+            )
+            return
+        except Exception:
+            pass
+
+    await update.effective_message.reply_text(caption, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+
+
+
 # ---------------------------
 # Rules button (inline)
 # ---------------------------
@@ -918,6 +989,8 @@ def main():
     app.add_handler(CommandHandler("debug", debug_cmd))
     app.add_handler(CommandHandler("rulesbutton", rulesbutton_cmd))
     app.add_handler(CallbackQueryHandler(rules_callback, pattern=f"^{RULES_CB}$"))
+    app.add_handler(CommandHandler("movie", movie_cmd))
+
     
 
 
@@ -967,6 +1040,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
