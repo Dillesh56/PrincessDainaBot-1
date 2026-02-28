@@ -976,7 +976,8 @@ def main():
     if not token:
         raise SystemExit("BOT_TOKEN env var is missing.")
 
-    print("BOT_TOKEN prefix:", token.split(":")[0], "len:", len(token))
+    print("BOT_TOKEN length:", len(token))
+    print("BOT_TOKEN prefix:", token.split(":")[0])
 
     init_db()
     app = Application.builder().token(token).build()
@@ -1042,6 +1043,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
